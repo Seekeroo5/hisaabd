@@ -72,5 +72,6 @@ self.addEventListener('fetch', (event) => {
 
 // https://vite.dev/config/
 export default defineConfig({
+  base: process.env.GITHUB_ACTIONS ? '/hisaabd/' : '/',
   plugins: [react(), dailyTallyServiceWorker()],
 })
