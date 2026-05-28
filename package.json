@@ -12,6 +12,7 @@
   "dependencies": {
     "@fontsource/bungee": "^5.2.7",
     "@fontsource/share-tech-mono": "^5.2.7",
+    "@instantdb/react": "^1.0.41",
     "react": "^19.2.6",
     "react-dom": "^19.2.6"
   },
