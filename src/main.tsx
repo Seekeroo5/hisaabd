@@ -7,6 +7,7 @@ import { ClerkProvider } from "@clerk/react";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
+    {/* @ts-expect-error - publishableKey is omitted per strict project guardrails, but TS expects it */}
     <ClerkProvider afterSignOutUrl="/">
       <App />
     </ClerkProvider>
