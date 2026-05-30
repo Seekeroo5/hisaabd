@@ -205,9 +205,6 @@
 }
 
 .daily-date {
-    position: fixed;
-    left: max(14px, env(safe-area-inset-left));
-    bottom: max(20px, env(safe-area-inset-bottom));
     color: #fff;
     font-family: "Share Tech Mono", monospace;
     font-size: 18px;

@@ -1,34 +1,37 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import { readdirSync, statSync, writeFileSync } from 'node:fs'
-import { relative, resolve, sep } from 'node:path'
-import type { Plugin, ResolvedConfig } from 'vite'
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import { readdirSync, statSync, writeFileSync } from "node:fs";
+import { relative, resolve, sep } from "node:path";
+import type { Plugin, ResolvedConfig } from "vite";
 
 function collectFiles(directory: string, root = directory): string[] {
   return readdirSync(directory).flatMap((name) => {
-    const filePath = resolve(directory, name)
-    const stat = statSync(filePath)
+    const filePath = resolve(directory, name);
+    const stat = statSync(filePath);
 
     if (stat.isDirectory()) {
-      return collectFiles(filePath, root)
+      return collectFiles(filePath, root);
     }
 
-    return `/${relative(root, filePath).split(sep).join('/')}`
-  })
+    return `/${relative(root, filePath).split(sep).join("/")}`;
+  });
 }
 
 function dailyTallyServiceWorker(): Plugin {
-  let config: ResolvedConfig
+  let config: ResolvedConfig;
 
   return {
-    name: 'dailytally-service-worker',
-    apply: 'build',
+    name: "dailytally-service-worker",
+    apply: "build",
     configResolved(resolvedConfig) {
-      config = resolvedConfig
+      config = resolvedConfig;
     },
     closeBundle() {
-      const outDir = resolve(config.root, config.build.outDir)
-      const assets = ['/', ...collectFiles(outDir).filter((asset) => asset !== '/sw.js')]
+      const outDir = resolve(config.root, config.build.outDir);
+      const assets = [
+        "/",
+        ...collectFiles(outDir).filter((asset) => asset !== "/sw.js"),
+      ];
       const sw = `const CACHE_NAME = 'dailytally-${Date.now()}'
 const CORE_ASSETS = ${JSON.stringify(assets, null, 2)}
 
@@ -63,15 +66,18 @@ self.addEventListener('fetch', (event) => {
     }),
   )
 })
-`
+`;
 
-      writeFileSync(resolve(outDir, 'sw.js'), sw)
+      writeFileSync(resolve(outDir, "sw.js"), sw);
     },
-  }
+  };
 }
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: process.env.GITHUB_ACTIONS ? '/hisaabd/' : '/',
+  base: process.env.GITHUB_ACTIONS ? "/hisaabd/" : "/",
   plugins: [react(), dailyTallyServiceWorker()],
-})
+  server: {
+    port: Math.floor(Math.random() * (65535 - 1024 + 1)) + 1024,
+  },
+});
