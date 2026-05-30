@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Show, SignInButton, SignUpButton, UserButton } from "@clerk/react";
 import "./App.css";
 
 type Currency = {
@@ -420,161 +421,182 @@ function App() {
   }
 
   return (
-    <main className="ledger-screen" aria-label="DailyTally ledger">
-      <header className="ledger-header" aria-hidden="true">
-        <span className="plus">+</span>
-        <span className="xp">XP</span>
-        <span className="minus">-</span>
+    <>
+      <header
+        style={{
+          display: "flex",
+          justifyContent: "flex-end",
+          padding: "1rem",
+          position: "absolute",
+          top: 0,
+          right: 0,
+          zIndex: 10,
+        }}
+      >
+        <Show when="signed-out">
+          <SignInButton />
+          <SignUpButton />
+        </Show>
+        <Show when="signed-in">
+          <UserButton />
+        </Show>
       </header>
+      <main className="ledger-screen" aria-label="DailyTally ledger">
+        <header className="ledger-header" aria-hidden="true">
+          <span className="plus">+</span>
+          <span className="xp">XP</span>
+          <span className="minus">-</span>
+        </header>
 
-      <section className="ledger-rows">
-        {ledger.entries.map((entry, index) => {
-          const isEditing = editing?.id === entry.id;
-          const displayValue = isEditing
-            ? editing.value
-            : formatAmount(entry.amount, currency);
-          const balance = displayBalances[index];
+        <section className="ledger-rows">
+          {ledger.entries.map((entry, index) => {
+            const isEditing = editing?.id === entry.id;
+            const displayValue = isEditing
+              ? editing.value
+              : formatAmount(entry.amount, currency);
+            const balance = displayBalances[index];
 
-          return (
-            <div className="ledger-row" key={entry.id}>
-              <div className="amount-cell amount-left">
-                {entry.type === "income" ? (
-                  <input
-                    aria-label="Income"
-                    className="amount-input income-input"
-                    inputMode="decimal"
-                    pattern="[0-9]*[.]?[0-9]*"
-                    value={displayValue}
-                    onFocus={() =>
-                      setEditing({
-                        id: entry.id,
-                        value: rawAmount(entry.amount),
-                      })
-                    }
-                    onChange={(event) =>
-                      setEditing({
-                        id: entry.id,
-                        value: sanitizeNumberInput(event.target.value),
-                      })
-                    }
-                    onBlur={() => commitEdit(entry.id)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") event.currentTarget.blur();
-                    }}
-                  />
-                ) : null}
+            return (
+              <div className="ledger-row" key={entry.id}>
+                <div className="amount-cell amount-left">
+                  {entry.type === "income" ? (
+                    <input
+                      aria-label="Income"
+                      className="amount-input income-input"
+                      inputMode="decimal"
+                      pattern="[0-9]*[.]?[0-9]*"
+                      value={displayValue}
+                      onFocus={() =>
+                        setEditing({
+                          id: entry.id,
+                          value: rawAmount(entry.amount),
+                        })
+                      }
+                      onChange={(event) =>
+                        setEditing({
+                          id: entry.id,
+                          value: sanitizeNumberInput(event.target.value),
+                        })
+                      }
+                      onBlur={() => commitEdit(entry.id)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") event.currentTarget.blur();
+                      }}
+                    />
+                  ) : null}
+                </div>
+
+                <div className="balance-cell">
+                  {formatAmount(balance, currency)}
+                </div>
+
+                <div className="amount-cell amount-right">
+                  {entry.type === "expense" ? (
+                    <input
+                      aria-label="Expense"
+                      className="amount-input expense-input"
+                      inputMode="decimal"
+                      pattern="[0-9]*[.]?[0-9]*"
+                      value={displayValue}
+                      onFocus={() =>
+                        setEditing({
+                          id: entry.id,
+                          value: rawAmount(entry.amount),
+                        })
+                      }
+                      onChange={(event) =>
+                        setEditing({
+                          id: entry.id,
+                          value: sanitizeNumberInput(event.target.value),
+                        })
+                      }
+                      onBlur={() => commitEdit(entry.id)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") event.currentTarget.blur();
+                      }}
+                    />
+                  ) : null}
+                </div>
               </div>
+            );
+          })}
 
-              <div className="balance-cell">
-                {formatAmount(balance, currency)}
-              </div>
-
-              <div className="amount-cell amount-right">
-                {entry.type === "expense" ? (
-                  <input
-                    aria-label="Expense"
-                    className="amount-input expense-input"
-                    inputMode="decimal"
-                    pattern="[0-9]*[.]?[0-9]*"
-                    value={displayValue}
-                    onFocus={() =>
-                      setEditing({
-                        id: entry.id,
-                        value: rawAmount(entry.amount),
-                      })
-                    }
-                    onChange={(event) =>
-                      setEditing({
-                        id: entry.id,
-                        value: sanitizeNumberInput(event.target.value),
-                      })
-                    }
-                    onBlur={() => commitEdit(entry.id)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") event.currentTarget.blur();
-                    }}
-                  />
-                ) : null}
-              </div>
+          <div className="ledger-row draft-row">
+            <div className="amount-cell amount-left">
+              <input
+                aria-label="New income"
+                className="amount-input income-input draft-input"
+                inputMode="decimal"
+                pattern="[0-9]*[.]?[0-9]*"
+                value={draftSide === "income" ? draftValue : "0"}
+                disabled={draftSide === "expense" && draftValue.length > 0}
+                onFocus={() => {
+                  setDraftSide("income");
+                  if (!draftValue) setDraftValue("");
+                }}
+                onChange={(event) => {
+                  setDraftSide("income");
+                  setDraftValue(sanitizeNumberInput(event.target.value));
+                }}
+                onBlur={commitDraft}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") event.currentTarget.blur();
+                }}
+              />
             </div>
-          );
-        })}
 
-        <div className="ledger-row draft-row">
-          <div className="amount-cell amount-left">
-            <input
-              aria-label="New income"
-              className="amount-input income-input draft-input"
-              inputMode="decimal"
-              pattern="[0-9]*[.]?[0-9]*"
-              value={draftSide === "income" ? draftValue : "0"}
-              disabled={draftSide === "expense" && draftValue.length > 0}
-              onFocus={() => {
-                setDraftSide("income");
-                if (!draftValue) setDraftValue("");
-              }}
-              onChange={(event) => {
-                setDraftSide("income");
-                setDraftValue(sanitizeNumberInput(event.target.value));
-              }}
-              onBlur={commitDraft}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") event.currentTarget.blur();
-              }}
-            />
+            <div className="balance-cell draft-balance">
+              {draftDisplayBalance === 0
+                ? "0"
+                : formatAmount(draftDisplayBalance, currency)}
+            </div>
+
+            <div className="amount-cell amount-right">
+              <input
+                aria-label="New expense"
+                className="amount-input expense-input draft-input"
+                inputMode="decimal"
+                pattern="[0-9]*[.]?[0-9]*"
+                value={draftSide === "expense" ? draftValue : "0"}
+                disabled={draftSide === "income" && draftValue.length > 0}
+                onFocus={() => {
+                  setDraftSide("expense");
+                  if (!draftValue) setDraftValue("");
+                }}
+                onChange={(event) => {
+                  setDraftSide("expense");
+                  setDraftValue(sanitizeNumberInput(event.target.value));
+                }}
+                onBlur={commitDraft}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") event.currentTarget.blur();
+                }}
+              />
+            </div>
           </div>
+        </section>
 
-          <div className="balance-cell draft-balance">
-            {draftDisplayBalance === 0
-              ? "0"
-              : formatAmount(draftDisplayBalance, currency)}
-          </div>
+        <button
+          aria-label="Copy ledger"
+          className="copy-button"
+          type="button"
+          onClick={handleMainCopy}
+        >
+          <svg aria-hidden="true" viewBox="0 0 24 24">
+            <path d="M8 8.5A2.5 2.5 0 0 1 10.5 6H18a2.5 2.5 0 0 1 2.5 2.5V18a2.5 2.5 0 0 1-2.5 2.5h-7.5A2.5 2.5 0 0 1 8 18z" />
+            <path d="M5.5 15.5A2.5 2.5 0 0 1 3 13V5.5A2.5 2.5 0 0 1 5.5 3H13a2.5 2.5 0 0 1 2.5 2.5" />
+          </svg>
+        </button>
 
-          <div className="amount-cell amount-right">
-            <input
-              aria-label="New expense"
-              className="amount-input expense-input draft-input"
-              inputMode="decimal"
-              pattern="[0-9]*[.]?[0-9]*"
-              value={draftSide === "expense" ? draftValue : "0"}
-              disabled={draftSide === "income" && draftValue.length > 0}
-              onFocus={() => {
-                setDraftSide("expense");
-                if (!draftValue) setDraftValue("");
-              }}
-              onChange={(event) => {
-                setDraftSide("expense");
-                setDraftValue(sanitizeNumberInput(event.target.value));
-              }}
-              onBlur={commitDraft}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") event.currentTarget.blur();
-              }}
-            />
-          </div>
-        </div>
-      </section>
-
-      <button
-        aria-label="Copy ledger"
-        className="copy-button"
-        type="button"
-        onClick={handleMainCopy}
-      >
-        <svg aria-hidden="true" viewBox="0 0 24 24">
-          <path d="M8 8.5A2.5 2.5 0 0 1 10.5 6H18a2.5 2.5 0 0 1 2.5 2.5V18a2.5 2.5 0 0 1-2.5 2.5h-7.5A2.5 2.5 0 0 1 8 18z" />
-          <path d="M5.5 15.5A2.5 2.5 0 0 1 3 13V5.5A2.5 2.5 0 0 1 5.5 3H13a2.5 2.5 0 0 1 2.5 2.5" />
-        </svg>
-      </button>
-
-      <time
-        className="daily-date"
-        dateTime={ledger.date}
-        aria-label={`Ledger date ${formatDisplayDate(ledger.date)}`}
-      >
-        {formatDisplayDate(ledger.date)}
-      </time>
-    </main>
+        <time
+          className="daily-date"
+          dateTime={ledger.date}
+          aria-label={`Ledger date ${formatDisplayDate(ledger.date)}`}
+        >
+          {formatDisplayDate(ledger.date)}
+        </time>
+      </main>
+    </>
   );
 }
 

@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@clerk/react": "^6.7.2",
     "@fontsource/bungee": "^5.2.7",
     "@fontsource/share-tech-mono": "^5.2.7",
     "@instantdb/admin": "^1.0.41",
