@@ -1,4 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import re
+
+with open("src/App.tsx", "r") as f:
+    content = f.read()
+
+# Replace imports
+imports = """import { useEffect, useMemo, useState } from "react";
 import {
   Show,
   SignInButton,
@@ -8,192 +14,10 @@ import {
 } from "@clerk/react";
 import { id } from "@instantdb/react";
 import { db } from "./db";
-import "./App.css";
+import "./App.css";"""
 
-type Currency = {
-  symbol: string;
-  decimals: number;
-};
-
-type LedgerEntry = {
-  id: string;
-  type: "income" | "expense";
-  amount: number;
-};
-
-const CURRENCIES: Currency[] = [
-  { symbol: "₹", decimals: 2 },
-  { symbol: "$", decimals: 2 },
-  { symbol: "€", decimals: 2 },
-  { symbol: "£", decimals: 2 },
-  { symbol: "¥", decimals: 2 },
-  { symbol: "₿", decimals: 8 },
-];
-
-const COLUMN_WIDTH = 18;
-
-const todayKey = () => {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
-};
-
-const sanitizeNumberInput = (value: string) => {
-  const normalized = value.replaceAll(",", ".");
-  let seenDecimal = false;
-
-  return Array.from(normalized)
-    .filter((character) => {
-      if (character >= "0" && character <= "9") return true;
-      if (character === "." && !seenDecimal) {
-        seenDecimal = true;
-        return true;
-      }
-
-      return false;
-    })
-    .join("");
-};
-
-const parsePositiveNumber = (value: string) => {
-  if (!value || value === ".") return null;
-
-  const parsed = Number(value);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
-};
-
-const parseZeroOrPositiveNumber = (value: string) => {
-  if (!value || value === ".") return 0;
-
-  const parsed = Number(value);
-  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
-};
-
-const rawAmount = (amount: number) => {
-  const fixed = amount.toFixed(8);
-  return fixed.replace(/\.?0+$/, "");
-};
-
-const formatAmount = (amount: number, currency: Currency) =>
-  `${currency.symbol}${amount.toFixed(currency.decimals)}`;
-
-const formatDisplayDate = (date: string) => {
-  const [year, month, day] = date.split("-");
-
-  if (!year || !month || !day) return date;
-
-  return `${day}/${month}/${year}`;
-};
-
-const centerText = (value: string, width: number) => {
-  if (value.length >= width) return value;
-
-  const left = Math.floor((width - value.length) / 2);
-  const right = width - value.length - left;
-
-  return `${" ".repeat(left)}${value}${" ".repeat(right)}`;
-};
-
-const formatCopyLine = (left: string, center: string, right: string) =>
-  `${left.padEnd(COLUMN_WIDTH)}${centerText(center, COLUMN_WIDTH)}${right.padStart(
-    COLUMN_WIDTH,
-  )}`.trimEnd();
-
-const getRunningBalances = (entries: LedgerEntry[]) => {
-  return entries.reduce<number[]>((values, entry, index) => {
-    const previousBalance = index === 0 ? 0 : values[index - 1];
-    const nextBalance =
-      previousBalance +
-      (entry.type === "income" ? entry.amount : -entry.amount);
-
-    return [...values, nextBalance];
-  }, []);
-};
-
-const getDisplayBalances = (entries: LedgerEntry[]) => {
-  let displayBalance = 0;
-  let pendingExpense = 0;
-
-  return entries.map((entry) => {
-    displayBalance -= pendingExpense;
-    pendingExpense = 0;
-
-    if (entry.type === "income") {
-      displayBalance += entry.amount;
-      return displayBalance;
-    }
-
-    pendingExpense = entry.amount;
-    return displayBalance;
-  });
-};
-
-const getDraftDisplayBalance = (entries: LedgerEntry[]) => {
-  if (entries.at(-1)?.type !== "expense") return 0;
-
-  return getRunningBalances(entries).at(-1) ?? 0;
-};
-
-const normalizeLedgerEntries = (entries: LedgerEntry[]) => {
-  let balance = 0;
-
-  return entries.map((entry) => {
-    if (entry.type === "income") {
-      balance += entry.amount;
-      return entry;
-    }
-
-    if (entry.amount <= balance) {
-      balance -= entry.amount;
-      return entry;
-    }
-
-    return {
-      ...entry,
-      amount: 0,
-    };
-  });
-};
-
-const buildLedgerText = (entries: LedgerEntry[], currency: Currency) => {
-  const lines = [formatCopyLine("+", "XP", "-")];
-  const displayBalances = getDisplayBalances(entries);
-
-  entries.forEach((entry, index) => {
-    lines.push(
-      formatCopyLine(
-        entry.type === "income" ? formatAmount(entry.amount, currency) : "",
-        formatAmount(displayBalances[index], currency),
-        entry.type === "expense" ? formatAmount(entry.amount, currency) : "",
-      ),
-    );
-  });
-
-  return lines.join("\n");
-};
-
-const copyText = async (text: string) => {
-  try {
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch {
-    const input = document.createElement("textarea");
-    input.value = text;
-    input.setAttribute("readonly", "");
-    input.style.position = "fixed";
-    input.style.opacity = "0";
-    document.body.appendChild(input);
-    input.select();
-    const didCopy = document.execCommand("copy");
-    document.body.removeChild(input);
-
-    return didCopy;
-  }
-};
-
+# Replace LedgerApp component
+ledger_app = """
 function LedgerApp() {
   const { user } = db.useAuth();
   const userId = user?.id;
@@ -209,12 +33,10 @@ function LedgerApp() {
     if (legacyCurrencyStr || legacyLedgerStr) {
       const txs = [];
       if (legacyCurrencyStr) {
-        txs.push(
-          db.tx.preferences[id()].update({
-            currency: legacyCurrencyStr,
-            creatorId: userId,
-          }),
-        );
+        txs.push(db.tx.preferences[id()].update({
+          currency: legacyCurrencyStr,
+          creatorId: userId
+        }));
       }
 
       if (legacyLedgerStr) {
@@ -222,29 +44,23 @@ function LedgerApp() {
           const parsed = JSON.parse(legacyLedgerStr);
           if (parsed.date && Array.isArray(parsed.entries)) {
             const ledgerId = id();
-            txs.push(
-              db.tx.ledgers[ledgerId].update({
-                date: parsed.date,
-                copied: false,
-                creatorId: userId,
-              }),
-            );
+            txs.push(db.tx.ledgers[ledgerId].update({
+              date: parsed.date,
+              copied: false,
+              creatorId: userId
+            }));
             parsed.entries.forEach((e: any, index: number) => {
-              if (e && e.type && typeof e.amount === "number") {
-                txs.push(
-                  db.tx.entries[e.id || id()]
-                    .update({
-                      type: e.type,
-                      amount: e.amount,
-                      orderIndex: index,
-                      creatorId: userId,
-                    })
-                    .link({ ledgers: ledgerId }),
-                );
-              }
+               if (e && e.type && typeof e.amount === "number") {
+                  txs.push(db.tx.entries[e.id || id()].update({
+                    type: e.type,
+                    amount: e.amount,
+                    orderIndex: index,
+                    creatorId: userId
+                  }).link({ ledgers: ledgerId }));
+               }
             });
           }
-        } catch {}
+        } catch (e) {}
       }
 
       if (txs.length > 0) {
@@ -284,9 +100,7 @@ function LedgerApp() {
 
   const todayLedger = allLedgers.find((l) => l.date === today);
 
-  const pastLedgers = allLedgers.filter(
-    (l) => l.date < today && !l.copied && (l.entries?.length || 0) > 0,
-  );
+  const pastLedgers = allLedgers.filter((l) => l.date < today && !l.copied && (l.entries?.length || 0) > 0);
   pastLedgers.sort((a, b) => b.date.localeCompare(a.date));
   const staleLedger = pastLedgers.length > 0 ? pastLedgers[0] : null;
 
@@ -296,24 +110,31 @@ function LedgerApp() {
         db.tx.ledgers[id()].update({
           date: today,
           copied: false,
-          creatorId: userId,
-        }),
+          creatorId: userId
+        })
       ]);
     }
   }, [isLoading, userId, staleLedger, todayLedger, today]);
 
+  const rawEntries = todayLedger?.entries || [];
   const entries = useMemo(() => {
-    return [...(todayLedger?.entries || [])]
+    return [...rawEntries]
       .sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0))
-      .map((e) => ({
+      .map(e => ({
         id: e.id,
         type: e.type as "income" | "expense",
         amount: e.amount,
       }));
-  }, [todayLedger?.entries]);
+  }, [rawEntries]);
 
-  const balances = useMemo(() => getRunningBalances(entries), [entries]);
-  const displayBalances = useMemo(() => getDisplayBalances(entries), [entries]);
+  const balances = useMemo(
+    () => getRunningBalances(entries),
+    [entries],
+  );
+  const displayBalances = useMemo(
+    () => getDisplayBalances(entries),
+    [entries],
+  );
   const draftDisplayBalance = useMemo(
     () => getDraftDisplayBalance(entries),
     [entries],
@@ -323,16 +144,11 @@ function LedgerApp() {
     if (!userId) return;
     if (preference) {
       db.transact([
-        db.tx.preferences[preference.id].update({
-          currency: selectedCurrency.symbol,
-        }),
+        db.tx.preferences[preference.id].update({ currency: selectedCurrency.symbol })
       ]);
     } else {
       db.transact([
-        db.tx.preferences[id()].update({
-          currency: selectedCurrency.symbol,
-          creatorId: userId,
-        }),
+        db.tx.preferences[id()].update({ currency: selectedCurrency.symbol, creatorId: userId })
       ]);
     }
   };
@@ -342,14 +158,12 @@ function LedgerApp() {
     const normalized = normalizeLedgerEntries(newEntries);
 
     const txs = normalized.map((entry, index) => {
-      return db.tx.entries[entry.id || id()]
-        .update({
-          type: entry.type,
-          amount: entry.amount,
-          orderIndex: index,
-          creatorId: userId,
-        })
-        .link({ ledgers: ledgerId });
+      return db.tx.entries[entry.id || id()].update({
+        type: entry.type,
+        amount: entry.amount,
+        orderIndex: index,
+        creatorId: userId
+      }).link({ ledgers: ledgerId });
     });
 
     db.transact(txs);
@@ -371,24 +185,23 @@ function LedgerApp() {
 
     if (!todayLedger) return;
 
-    updateLedgerEntries(
-      [
-        ...entries,
-        {
-          id: id(),
-          type: draftSide,
-          amount,
-        },
-      ],
-      todayLedger.id,
-    );
+    updateLedgerEntries([
+      ...entries,
+      {
+        id: id(),
+        type: draftSide,
+        amount,
+      },
+    ], todayLedger.id);
 
     setDraftSide(null);
     setDraftValue("");
   };
 
   const commitEdit = (entryId: string) => {
-    const entryIndex = entries.findIndex((entry) => entry.id === entryId);
+    const entryIndex = entries.findIndex(
+      (entry) => entry.id === entryId,
+    );
     const entry = entries[entryIndex];
     const amount = parseZeroOrPositiveNumber(editing?.value ?? "");
 
@@ -404,8 +217,10 @@ function LedgerApp() {
     if (!todayLedger) return;
 
     updateLedgerEntries(
-      entries.map((e) => (e.id === entryId ? { ...e, amount: nextAmount } : e)),
-      todayLedger.id,
+      entries.map((e) =>
+        e.id === entryId ? { ...e, amount: nextAmount } : e,
+      ),
+      todayLedger.id
     );
 
     setEditing(null);
@@ -421,35 +236,26 @@ function LedgerApp() {
 
     const staleEntries = [...(staleLedger.entries || [])]
       .sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0))
-      .map((e) => ({
+      .map(e => ({
         id: e.id,
         type: e.type as "income" | "expense",
         amount: e.amount,
       }));
 
-    const didCopy = await copyText(buildLedgerText(staleEntries, currency));
+    const didCopy = await copyText(
+      buildLedgerText(staleEntries, currency),
+    );
     if (!didCopy) return;
 
-    db.transact([db.tx.ledgers[staleLedger.id].update({ copied: true })]);
+    db.transact([
+      db.tx.ledgers[staleLedger.id].update({ copied: true })
+    ]);
   };
 
   if (isLoading) {
     return (
-      <main
-        className="ledger-screen"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <p
-          style={{
-            fontFamily: '"Share Tech Mono", monospace',
-            fontSize: "1.2rem",
-            color: "var(--copy)",
-          }}
-        >
+      <main className="ledger-screen" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <p style={{ fontFamily: '"Share Tech Mono", monospace', fontSize: "1.2rem", color: "var(--copy)" }}>
           Loading your data...
         </p>
       </main>
@@ -667,133 +473,69 @@ function LedgerApp() {
     </main>
   );
 }
+"""
 
-function App() {
-  const { getToken } = useAuth();
-  const {
-    isLoading: instantLoading,
-    error: instantError,
-    user: instantUser,
-  } = db.useAuth();
+with open("src/App.tsx", "w") as f:
+    f.write(imports + "\n\n")
+    # Actually, let's read the git version to be safe, because I corrupted the file!
+    import subprocess
 
-  useEffect(() => {
-    const signInToInstantWithClerkToken = async () => {
-      try {
-        const idToken = await getToken();
+    content = subprocess.check_output(["git", "show", "HEAD:src/App.tsx"]).decode(
+        "utf-8"
+    )
 
-        if (!idToken) {
-          return;
-        }
+    start_type = content.find("type Currency = {")
+    end_copyText = content.find("function LedgerApp() {")
 
-        await db.auth.signInWithIdToken({
-          clientName: "clerk",
-          idToken: idToken,
-        });
-      } catch (err) {
-        console.error("InstantDB sign-in failed:", err);
-      }
-    };
+    middle = content[start_type:end_copyText]
 
-    signInToInstantWithClerkToken();
-  }, [getToken]);
+    middle = re.sub(r"type SavedLedger = \{[^}]*\};", "", middle, flags=re.MULTILINE)
+    middle = re.sub(r'const CURRENCY_KEY = "[^"]*";', "", middle)
+    middle = re.sub(r'const LEDGER_KEY = "[^"]*";', "", middle)
 
-  return (
-    <>
-      <header
-        style={{
-          display: "flex",
-          justifyContent: "flex-end",
-          padding: "1rem",
-          position: "absolute",
-          top: 0,
-          right: 0,
-          zIndex: 10,
-        }}
-      >
-        <Show when="signed-out">
-          <SignInButton />
-          <SignUpButton />
-        </Show>
-      </header>
+    middle = re.sub(
+        r"const getInitialStorageState = \(\): \{.*?return \{ ledger: saved, staleLedger: null \};\n\n?};",
+        "",
+        middle,
+        flags=re.MULTILINE | re.DOTALL,
+    )
 
-      <Show when="signed-in">
-        {instantLoading || !instantUser ? (
-          <main
-            className="ledger-screen"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <p
-              style={{
-                fontFamily: '"Share Tech Mono", monospace',
-                fontSize: "1.2rem",
-                color: "var(--copy)",
-              }}
-            >
-              Loading Instant DB...
-            </p>
-          </main>
-        ) : instantError ? (
-          <main
-            className="ledger-screen"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <p
-              style={{
-                fontFamily: '"Share Tech Mono", monospace',
-                fontSize: "1.2rem",
-                color: "var(--red)",
-              }}
-            >
-              Error connecting to DB: {String(instantError)}
-            </p>
-          </main>
-        ) : (
-          <LedgerApp />
-        )}
-      </Show>
-      <Show when="signed-out">
-        <main
-          className="ledger-screen"
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "2rem",
-          }}
-        >
-          <h1
-            style={{
-              fontFamily: '"Bungee", sans-serif',
-              fontSize: "3rem",
-              margin: 0,
-              color: "var(--green)",
-            }}
-          >
-            DailyTally
-          </h1>
-          <p
-            style={{
-              fontFamily: '"Share Tech Mono", monospace',
-              fontSize: "1.2rem",
-              color: "var(--copy)",
-            }}
-          >
-            Please sign in to view your ledger.
-          </p>
-          <SignInButton />
-        </main>
-      </Show>
-    </>
-  );
-}
+    middle = re.sub(
+        r"const parseSavedLedger = \(\): SavedLedger \| null => \{.*?\} catch \{\n    return null;\n  \}\n\n?};",
+        "",
+        middle,
+        flags=re.MULTILINE | re.DOTALL,
+    )
 
-export default App;
+    middle = re.sub(
+        r"const loadCurrency = \(\): Currency \| null => \{.*?\n\n?};",
+        "",
+        middle,
+        flags=re.MULTILINE | re.DOTALL,
+    )
+
+    middle = re.sub(
+        r"const saveLedger = \(ledger: SavedLedger\) => \{.*?\n\n?};",
+        "",
+        middle,
+        flags=re.MULTILINE | re.DOTALL,
+    )
+
+    middle = re.sub(
+        r"const makeEmptyLedger = \(\)[^;]+;",
+        "",
+        middle,
+        flags=re.MULTILINE | re.DOTALL,
+    )
+    middle = re.sub(
+        r"const makeEmptyLedger = \(\) => \(\{[^}]*\}\);",
+        "",
+        middle,
+        flags=re.MULTILINE | re.DOTALL,
+    )
+
+    f.write(middle.strip() + "\n\n")
+    f.write(ledger_app + "\n\n")
+
+    start_app = content.find("function App() {")
+    f.write(content[start_app:])

@@ -21,15 +21,18 @@ const _schema = i.schema({
     }),
     preferences: i.entity({
       currency: i.string(),
+      creatorId: i.string(),
     }),
     ledgers: i.entity({
       date: i.string(),
       copied: i.boolean(),
+      creatorId: i.string(),
     }),
     entries: i.entity({
       type: i.string(),
       amount: i.number(),
       orderIndex: i.number(),
+      creatorId: i.string(),
     }),
   },
   links: {
